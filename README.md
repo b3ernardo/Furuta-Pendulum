@@ -8,10 +8,9 @@ The goal is to model, simulate, and implement real-time control of a Furuta Pend
 ## 📂 Repository Structure
 
 - **/arduino_code** → Control algorithm implemented on ESP32 (Arduino IDE).  
-- **/matlab** → MATLAB scripts for modeling and analysis.  
-- **/simulink** → Simulink models for simulation and validation.  
-- **/3d_print** → STL files for 3D printing the physical structure.  
-
+- **/3d_print** → STL files for 3D printing the physical structure.
+- **/matlab_simulink** → MATLAB scripts for modeling and analysis and Simulink models for simulation and validation.
+    
 ---
 
 ## 🛠️ Features
