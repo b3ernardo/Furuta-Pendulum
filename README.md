@@ -7,10 +7,17 @@ The goal is to model, simulate, and implement real-time control of a Furuta Pend
 
 ## 📂 Repository Structure
 
-- **/arduino_code** → Control algorithm implemented on the ESP32 (Arduino IDE).  
-- **/3d_print** → STL files for 3D printing the physical structure.  
-- **/matlab_simulink** → MATLAB scripts for modeling, analysis, and Simulink models for simulation and validation.  
-- **/python_code** → Jupyter notebooks for data acquisition from the ESP32 via serial communication.  
+- **/3d_print** → STL files for 3D printing the physical structure of the Furuta Pendulum prototype.
+- **/arduino_code** → Contains the control algorithm implemented on the ESP32 (Arduino IDE).  
+  - **furuta.ino** → Main code that runs the real-time LQR control loop, reads encoder data, applies PWM signals to the motor, logs measurements, and sends data via serial.
+- **/matlab_simulink** → MATLAB scripts and Simulink models for system modeling, simulation, and validation.  
+  - **LQR.mlx** → Computes the optimal LQR gain matrix.  
+  - **SimulationLQR_Linear.slx** → Simulink model for the linearized system.  
+  - **SimulationLQR_NaoLinear.slx** → Simulink model for the nonlinear system.  
+  - **data_log_pulse.txt** / **data_log_step.txt** → Experimental data collected from pulse and step disturbance tests.  
+  - **graficos_pulse.mlx** / **graficos_step.mlx** → Scripts for generating comparative plots (simulation vs. experimental data).  
+- **/python_code** → Scripts for data acquisition from the ESP32 via serial communication.  
+  - **GetFurutaData.ipynb** / **GetFurutaData.py** → Identical scripts for collecting and saving real-time data from the ESP32 to `data_log.txt`. 
 - **3D CAD Online** → [View on Onshape](https://cad.onshape.com/documents/d0d2d40c9dd0c88f858cd038/w/86dce8532c9b6c8310216a8c/e/c2fa23f7c1c4edc232f4e580?renderMode=0&uiState=68e07acc73f9dd32bc20c706)  
 
 ---
