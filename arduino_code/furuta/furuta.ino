@@ -31,6 +31,8 @@
 #define RCHA 32  // Rod encoder channel A
 #define RCHB 33  // Rod encoder channel B
 
+#define MAX_SAMPLES 3000  // Maximum number of data samples stored
+
 // Encoder objects
 ESP32Encoder NIDEC_ENC;  // Encoder for the NIDEC motor
 ESP32Encoder ROD_ENC;    // Encoder for the pendulum rod
@@ -51,14 +53,10 @@ const float CNT_PER_RAD_NIDEC = CPR_NIDEC / (2.0f * PI);  // ≈ 63.66
 const float CNT_PER_RAD_ROD = CPR_ROD / (2.0f * PI);      // ≈ 229.18
 
 // Control gains - LQR
-float K1 = -11.8;
-float K2 = 240.0;
-float K3 = -7.2;
-float K4 = 12.5;
-// float K1 = -10.715;
-// float K2 = 177.987;
-// float K3 = -3.786;
-// float K4 = 10.648;
+float K1 = -0.5111;
+float K2 = 14.1924;
+float K3 = -0.3557;
+float K4 = 0.9390;
 
 // Variables to store encoder readings, PWM output, and accumulated states
 float rod_position = 0;    // Current angular position of the pendulum rod (incremental encoder counts)
@@ -73,6 +71,14 @@ int ROD_count = 0;    // Raw encoder count for pendulum rod in the current sampl
 float Ts = 0.01;        // Sampling time (control loop period) in seconds → 10 ms
 float currentT = 0.0;   // Current loop timestamp (milliseconds converted to seconds)
 float previousT = 0.0;  // Previous loop timestamp (used to calculate elapsed time)
+
+// Variables used for data logging and transmission
+float data[MAX_SAMPLES][7];  // Matrix storing up to 3000 samples, each with 7 measured or computed variables
+float disturbance = 0;       // External disturbance applied to the system (e.g., pulse or step input)
+float Tc = 20;               // Data acquisition period (ms) used to control when samples are sent via Serial
+float currentTc = 0.0;       // Current timestamp used for timing control
+float previousTc = 0.0;      // Previous timestamp used to determine when to send data
+int count = 0;               // Sample counter used to track the number of stored measurements
 
 // MAIN SETUP: Runs once on startup/reset
 void setup() {
@@ -106,6 +112,12 @@ void setup() {
 
 // MAIN LOOP: Runs repeatedly after setup
 void loop() {
+  balance();
+  // print();
+}
+
+// BALANCE CONTROL LOOP: Runs the main control algorithm for the Furuta pendulum
+void balance() {
   currentT = millis();  // Current time in ms
 
   // Run control loop every Ts seconds
@@ -124,20 +136,35 @@ void loop() {
       NIDEC_ENC.clearCount();
       ROD_ENC.clearCount();
 
-      // Integrate speeds to get position and displacement
+      // Integrate speed to get angular position
       nidec_position += nidec_speed * Ts;
       rod_position += rod_speed * Ts;
 
-      // Compute control law
-      pwm = -(K1 * nidec_position + K2 * rod_position + K3 * nidec_speed + K4 * rod_speed);
+      // Compute control law (state feedback)
+      float u = K1 * nidec_position + K2 * rod_position + K3 * nidec_speed + K4 * rod_speed;
 
-      // Sometimes the motor stops
+      // Conversion to PWM
+      pwm = -constrain(u * 21.25, -200, 200);
+
+      // Apply small random correction if motor stalls
       if (nidec_speed == 0) {
         pwm += random(8) - 4;
       }
 
+      // Apply a step-type disturbance after 21 seconds
+      // if (currentT / 1000.0 > 21) {
+      //   disturbance = 1 * 21.25;
+      // }
+
+      // Apply a pulse-type disturbance at t ∈ (21s, 22s)
+      // if (currentT / 1000.0 > 21 && currentT / 1000.0 < 22) {
+      //   disturbance = 1 * 21.25;
+      // } else {
+      //   disturbance = 0;
+      // }
+
       // Send command to motor
-      MOTORcmd(pwm);
+      MOTORcmd(pwm + disturbance);
     } else {
       // If system goes out of bounds → stop motor and activate LED alarm
       pwm = 0;
@@ -145,6 +172,45 @@ void loop() {
       digitalWrite(BRAKE, LOW);
       digitalWrite(INTERNAL_LED, HIGH);  // Activate LED alarm
     }
+
+    // Data logging after 20 seconds of operation
+    // if (currentT / 1000.0 > 20) {
+    //   data[count][0] = currentT / 1000.0;  // Time (s)
+    //   data[count][1] = nidec_position;     // Base angle (rad)
+    //   data[count][2] = rod_position;       // Rod angle (rad)
+    //   data[count][3] = nidec_speed;        // Base angular speed (rad/s)
+    //   data[count][4] = rod_speed;          // Rod angular speed (rad/s)
+    //   data[count][5] = pwm / 21.25;        // Normalized control signal
+    //   data[count][6] = disturbance;        // Applied disturbance
+
+    //   if (count < MAX_SAMPLES - 1) {
+    //     count++;
+    //   }
+    // }
+  }
+}
+
+// DATA PRINT FUNCTION: Sends all collected samples to Serial Monitor after 50s
+void print() {
+  currentTc = millis();
+
+  // Print data every Tc seconds, only after 50 seconds of operation
+  if ((currentTc - previousTc) / 1000.0 >= Tc && currentTc / 1000.0 > 50) {
+    previousTc = currentTc;
+
+    // Send data matrix (time, positions, speeds, control, disturbance)
+    for (int i = 0; i < MAX_SAMPLES; i++) {
+      for (int j = 0; j < 7; j++) {
+        Serial.print(data[i][j], 6);  // Print with 6 decimal places
+
+        if (j != 6) {
+          Serial.print(" ");
+        }
+      }
+      Serial.println();
+    }
+
+    Serial.println("===");  // End of data block marker
   }
 }
 
