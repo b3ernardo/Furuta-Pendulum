@@ -11,7 +11,7 @@ The goal is to model, simulate, and implement real-time control of a Furuta Pend
 - **/arduino_code/furuta** → Contains the control algorithm implemented on the ESP32 (Arduino IDE).  
   - **furuta.ino** → Main code that runs the real-time LQR control loop, reads encoder data, applies PWM signals to the motor, logs measurements, and sends data via serial.
 - **/matlab_simulink** → MATLAB scripts and Simulink models for system modeling, simulation, and validation.  
-  - **lqr.mlx** → Computes the optimal LQR gain matrix.  
+  - **LQR.mlx** → Computes the optimal LQR gain matrix.  
   - **simulation_linear_model.slx** → Simulink model for the linearized system.  
   - **simulation_non_linear_model.slx** → Simulink model for the nonlinear system.  
   - **data_log_pulse.txt** / **data_log_step.txt** → Experimental data collected from pulse and step disturbance tests.  
